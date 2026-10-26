@@ -1,0 +1,388 @@
+/* MED.10 – spokojne kolory, tryb jasny i ciemny wg ustawień systemu */
+:root {
+  --tlo: #f4f7f5;
+  --karta: #ffffff;
+  --tekst: #1f2d2a;
+  --tekst-2: #5a6b67;
+  --ramka: #d6e0dc;
+  --akcent: #2f7d6d;
+  --akcent-tekst: #ffffff;
+  --akcent-jasny: #e3f1ed;
+  --ok: #2e7d4f;
+  --ok-tlo: #e3f4e9;
+  --blad: #b4463b;
+  --blad-tlo: #fbe9e7;
+  --ostrzezenie: #9a6a12;
+  --ostrzezenie-tlo: #fdf5e2;
+  --cien: 0 1px 3px rgba(20, 40, 35, .08);
+  --promien: 14px;
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --tlo: #121a18;
+    --karta: #1b2522;
+    --tekst: #e3ebe8;
+    --tekst-2: #9fb0ab;
+    --ramka: #2f3d39;
+    --akcent: #5fb8a3;
+    --akcent-tekst: #0f1a17;
+    --akcent-jasny: #203632;
+    --ok: #6cc795;
+    --ok-tlo: #1a3326;
+    --blad: #ec8a7f;
+    --blad-tlo: #3a1f1c;
+    --ostrzezenie: #e5b75a;
+    --ostrzezenie-tlo: #352a14;
+    --cien: none;
+    color-scheme: dark;
+  }
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+
+html { -webkit-text-size-adjust: 100%; }
+
+body {
+  margin: 0;
+  background: var(--tlo);
+  color: var(--tekst);
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+  font-size: 18px;
+  line-height: 1.5;
+  overflow-x: hidden;
+  overflow-wrap: anywhere;
+}
+
+h1 { font-size: 1.5rem; line-height: 1.25; margin: .4em 0 .6em; }
+h2 { font-size: 1.2rem; margin: 1.4em 0 .6em; }
+h3 { font-size: 1.05rem; margin: .2em 0 .6em; }
+p { margin: .5em 0; }
+code { font-size: .9em; }
+
+button {
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+button:disabled { cursor: default; }
+button:focus-visible { outline: 3px solid var(--akcent); outline-offset: 2px; }
+
+kbd {
+  font: inherit;
+  font-size: .75em;
+  padding: 0 .4em;
+  border: 1px solid currentColor;
+  border-radius: 4px;
+  opacity: .7;
+}
+
+/* ---------- Układ ---------- */
+
+.naglowek {
+  background: var(--karta);
+  border-bottom: 1px solid var(--ramka);
+}
+.logo {
+  display: block;
+  width: 100%;
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 12px 16px;
+  background: none;
+  border: 0;
+  text-align: left;
+  font-weight: 700;
+  color: var(--akcent);
+}
+.logo span { font-weight: 400; color: var(--tekst-2); }
+
+.zawartosc {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 12px 16px 48px;
+}
+
+.karta {
+  background: var(--karta);
+  border: 1px solid var(--ramka);
+  border-radius: var(--promien);
+  padding: 16px;
+  margin: 12px 0;
+  box-shadow: var(--cien);
+}
+
+.maly, .podpowiedz { font-size: .85rem; color: var(--tekst-2); }
+.podpowiedz { text-align: center; margin-top: 20px; }
+
+.uwaga {
+  font-size: .85rem;
+  color: var(--ostrzezenie);
+  background: var(--ostrzezenie-tlo);
+  border-radius: 10px;
+  padding: 10px 14px;
+}
+
+/* ---------- Ekran startowy ---------- */
+
+.powitanie h1 { margin-top: 0; }
+.podtytul { color: var(--tekst-2); margin-top: -.4em; }
+
+.liczby {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  text-align: center;
+  margin: 12px 0;
+}
+.liczby strong { display: block; font-size: 1.5rem; color: var(--akcent); }
+.liczby span { display: block; font-size: .8rem; color: var(--tekst-2); line-height: 1.3; }
+
+.tryby { display: grid; gap: 10px; margin-top: 16px; }
+
+.tryb {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  min-height: 72px;
+  padding: 14px 16px;
+  text-align: left;
+  background: var(--karta);
+  border: 1px solid var(--ramka);
+  border-radius: var(--promien);
+  box-shadow: var(--cien);
+}
+.tryb:hover:not(:disabled) { border-color: var(--akcent); }
+.tryb:disabled { opacity: .55; }
+.tryb.wyrozniony { border: 2px solid var(--akcent); background: var(--akcent-jasny); }
+.tryb .ikona { font-size: 1.6rem; flex: none; }
+.tryb strong { display: block; }
+.tryb small { display: block; color: var(--tekst-2); font-size: .85rem; line-height: 1.35; }
+
+/* ---------- Paski postępu ---------- */
+
+.pasek-postepu {
+  height: 8px;
+  background: var(--ramka);
+  border-radius: 99px;
+  overflow: hidden;
+  margin: 8px 0;
+}
+.pasek-postepu > div { height: 100%; background: var(--akcent); border-radius: 99px; transition: width .3s; }
+.pasek-postepu.cienki { height: 5px; margin-bottom: 0; }
+.pasek-postepu.ok > div { background: var(--ok); }
+.pasek-postepu.slabo > div { background: var(--blad); }
+
+/* ---------- Wybór działu ---------- */
+
+.lista-dzialow { display: grid; gap: 10px; margin-bottom: 16px; }
+.dzial-przycisk {
+  display: block;
+  width: 100%;
+  padding: 14px 16px;
+  text-align: left;
+  background: var(--karta);
+  border: 1px solid var(--ramka);
+  border-radius: var(--promien);
+}
+.dzial-przycisk:hover { border-color: var(--akcent); }
+.dzial-nazwa { display: block; font-weight: 600; }
+.dzial-info { display: block; font-size: .85rem; color: var(--tekst-2); }
+
+/* ---------- Pytanie ---------- */
+
+.gora-sesji, .gora-egzaminu {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 4px 12px;
+  font-size: .85rem;
+  color: var(--tekst-2);
+}
+.gora-egzaminu {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  align-items: center;
+  margin: 0 -16px;
+  padding: 10px 16px;
+  background: var(--tlo);
+  border-bottom: 1px solid var(--ramka);
+  font-size: 1rem;
+}
+.licznik {
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  color: var(--tekst);
+  background: var(--karta);
+  border: 1px solid var(--ramka);
+  border-radius: 99px;
+  padding: 2px 12px;
+}
+.licznik.malo-czasu { color: var(--blad); border-color: var(--blad); background: var(--blad-tlo); }
+
+.dobrze { color: var(--ok); }
+.zle { color: var(--blad); }
+
+.dzial-etykieta {
+  font-size: .8rem;
+  color: var(--akcent);
+  font-weight: 600;
+  margin: 16px 0 4px;
+}
+.tresc { font-size: 1.2rem; line-height: 1.4; margin: 0 0 16px; }
+
+.odpowiedzi { display: grid; gap: 10px; }
+.odp {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  width: 100%;
+  min-height: 60px;
+  padding: 14px;
+  text-align: left;
+  background: var(--karta);
+  border: 2px solid var(--ramka);
+  border-radius: var(--promien);
+  transition: border-color .15s, background .15s;
+}
+.odp:hover:not(:disabled) { border-color: var(--akcent); }
+.odp .litera {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--akcent-jasny);
+  color: var(--akcent);
+  font-weight: 700;
+}
+.odp .tekst { padding-top: 3px; }
+.odp:disabled { opacity: 1; }
+
+.odp.wybrana { border-color: var(--akcent); background: var(--akcent-jasny); }
+.odp.wybrana .litera { background: var(--akcent); color: var(--akcent-tekst); }
+.odp.poprawna { border-color: var(--ok); background: var(--ok-tlo); }
+.odp.poprawna .litera { background: var(--ok); color: var(--karta); }
+.odp.bledna { border-color: var(--blad); background: var(--blad-tlo); }
+.odp.bledna .litera { background: var(--blad); color: var(--karta); }
+.odp.wyszarzona { opacity: .55; }
+
+.wyjasnienie {
+  margin: 16px 0;
+  padding: 14px 16px;
+  border-radius: var(--promien);
+  border-left: 5px solid;
+}
+.wyjasnienie.ok { background: var(--ok-tlo); border-color: var(--ok); }
+.wyjasnienie.blad { background: var(--blad-tlo); border-color: var(--blad); }
+.werdykt { font-weight: 700; margin-top: 0; }
+.zrodlo { font-size: .8rem; color: var(--tekst-2); }
+
+/* ---------- Przyciski ---------- */
+
+.glowny, .drugorzedny, .niebezpieczny, .zakoncz {
+  display: block;
+  width: 100%;
+  min-height: 52px;
+  margin: 10px 0;
+  padding: 12px 16px;
+  border-radius: var(--promien);
+  font-weight: 600;
+  border: 2px solid transparent;
+}
+.glowny { background: var(--akcent); color: var(--akcent-tekst); }
+.drugorzedny { background: transparent; border-color: var(--ramka); color: var(--tekst); }
+.niebezpieczny { background: transparent; border-color: var(--blad); color: var(--blad); }
+.zakoncz { background: var(--tekst); color: var(--tlo); margin-top: 20px; }
+.glowny:disabled, .drugorzedny:disabled { opacity: .4; }
+
+.przyciski { display: grid; gap: 0 10px; }
+.nawigacja { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 16px; }
+.nawigacja button { margin: 0; }
+
+@media (min-width: 560px) {
+  .przyciski { grid-template-columns: 1fr 1fr; }
+}
+
+/* ---------- Siatka numerów pytań (egzamin) ---------- */
+
+.siatka {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(44px, 1fr));
+  gap: 6px;
+}
+.nr {
+  min-height: 44px;
+  padding: 0;
+  border-radius: 10px;
+  background: var(--karta);
+  border: 1px solid var(--ramka);
+  font-size: .9rem;
+}
+.nr.odpowiedziane { background: var(--akcent-jasny); border-color: var(--akcent); color: var(--akcent); font-weight: 700; }
+.nr.trafione { background: var(--ok-tlo); border-color: var(--ok); color: var(--ok); font-weight: 700; }
+.nr.chybione { background: var(--blad-tlo); border-color: var(--blad); color: var(--blad); font-weight: 700; }
+.nr.biezace { outline: 3px solid var(--tekst); outline-offset: 1px; }
+
+.przelacznik {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  cursor: pointer;
+}
+.przelacznik input { flex: none; width: 24px; height: 24px; margin: 2px 0 0; accent-color: var(--akcent); }
+.przelacznik strong { display: block; }
+.przelacznik small { display: block; color: var(--tekst-2); font-size: .85rem; line-height: 1.35; }
+
+/* ---------- Wyniki ---------- */
+
+.wynik, .wynik-sesji { text-align: center; }
+.duzy { font-size: 2rem; font-weight: 700; margin: .2em 0; }
+.werdykt-egzaminu { font-size: 2.2rem; font-weight: 800; letter-spacing: .05em; margin: .2em 0; }
+.wynik.zdany { border: 2px solid var(--ok); background: var(--ok-tlo); }
+.wynik.zdany .werdykt-egzaminu { color: var(--ok); }
+.wynik.niezdany { border: 2px solid var(--blad); background: var(--blad-tlo); }
+.wynik.niezdany .werdykt-egzaminu { color: var(--blad); }
+
+.przeglad .twoja { color: var(--blad); }
+.przeglad .poprawna-odp { color: var(--ok); }
+
+/* ---------- Statystyki ---------- */
+
+.stat-dzial + .stat-dzial { border-top: 1px solid var(--ramka); padding-top: 12px; margin-top: 12px; }
+.stat-naglowek { display: flex; justify-content: space-between; gap: 12px; font-weight: 600; }
+.stat-dzial .pasek-postepu { margin-bottom: 4px; }
+
+.historia { list-style: none; padding: 0; margin: 0; }
+.historia li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px 12px;
+  padding: 12px 16px;
+  margin-bottom: 8px;
+  background: var(--karta);
+  border: 1px solid var(--ramka);
+  border-radius: var(--promien);
+}
+.odznaka {
+  font-size: .75rem;
+  font-weight: 700;
+  padding: 2px 10px;
+  border-radius: 99px;
+}
+.odznaka.ok { color: var(--ok); background: var(--ok-tlo); }
+.odznaka.blad { color: var(--blad); background: var(--blad-tlo); }
+
+.ladowanie { color: var(--tekst-2); text-align: center; }
+
+@media (prefers-reduced-motion: reduce) {
+  * { transition: none !important; scroll-behavior: auto !important; }
+}

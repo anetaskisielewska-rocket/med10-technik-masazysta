@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="pl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <title>MED.10 – nauka do egzaminu</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="naglowek">
+    <button type="button" class="logo" data-akcja="menu">MED.10 <span>technik masażysta</span></button>
+  </header>
+
+  <main id="app" class="zawartosc">
+    <p class="ladowanie">Ładowanie…</p>
+  </main>
+
+  <noscript>
+    <p class="zawartosc">Ta aplikacja wymaga włączonego JavaScriptu w przeglądarce.</p>
+  </noscript>
+
+  <!-- Kolejność ma znaczenie: najpierw przykładowe pytania, potem pełna baza
+       (jeśli plik istnieje, nadpisuje window.PYTANIA), na końcu aplikacja. -->
+  <script src="pytania-przyklad.js"></script>
+  <script src="pytania.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
