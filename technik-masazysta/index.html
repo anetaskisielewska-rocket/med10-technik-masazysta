@@ -5,11 +5,20 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="color-scheme" content="light dark">
   <title>MED.10 – nauka do egzaminu</title>
+  <meta name="theme-color" content="#f7f0e6" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#1a120d" media="(prefers-color-scheme: dark)">
+  <meta name="apple-mobile-web-app-title" content="MED.10">
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="icon" href="icon-192.png" sizes="192x192" type="image/png">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
   <header class="naglowek">
-    <button type="button" class="logo" data-akcja="menu">MED.10 <span>technik masażysta</span></button>
+    <div class="naglowek-wnetrze">
+      <button type="button" class="logo" data-akcja="menu">MED.10 <span>technik masażysta</span></button>
+      <button type="button" class="kto" id="kto" data-akcja="imie" hidden></button>
+    </div>
   </header>
 
   <main id="app" class="zawartosc">

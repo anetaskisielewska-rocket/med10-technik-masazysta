@@ -3,13 +3,15 @@
 (function () {
   'use strict';
 
-  var KLUCZ = 'med10-postepy-v1';
   var LITERY = ['A', 'B', 'C', 'D'];
   var PYTAN_NA_EGZAMINIE = 40;
   var CZAS_EGZAMINU_MS = 60 * 60 * 1000;
   var PROG_ZDANIA = 50;
   var POPRAWNYCH_DO_ZALICZENIA_BLEDU = 2;
   var MAKS_HISTORIA = 100;
+  var O_APLIKACJI = 'Pytania powstały na podstawie oficjalnych wymagań egzaminacyjnych CKE ' +
+    '(informator i podstawa programowa) oraz zadań z poprzednich sesji egzaminu MED.10.';
+  var AUTORKA = 'Przygotowała Aneta Kisielewska';
 
   var app = document.getElementById('app');
 
@@ -78,6 +80,13 @@
   dzialy.sort(function (a, b) { return a.localeCompare(b, 'pl', { numeric: true }); });
 
   // ---------- Zapis postępów (localStorage może być zablokowany) ----------
+  //
+  // med10-postepy-v1   postępy (wyniki, błędy, egzaminy, ustawienia)
+  // med10:imie         imię lub pseudonim ucznia
+
+  var KLUCZ_POSTEPY = 'med10-postepy-v1';
+  var KLUCZ_IMIE = 'med10:imie';
+  var MAKS_DLUGOSC_IMIENIA = 30;
 
   var magazynDziala = (function () {
     try {
@@ -90,42 +99,76 @@
     }
   })();
 
-  function pustyStan() {
-    return { wyniki: {}, bledy: {}, egzaminy: [], egzamin: null, podpowiedzi: false };
+  // Gdy localStorage nie działa, dane żyją tylko w pamięci do zamknięcia strony.
+  var pamiec = {};
+
+  function czytaj(klucz) {
+    if (maWlasnosc(pamiec, klucz)) return pamiec[klucz];
+    try {
+      return window.localStorage.getItem(klucz);
+    } catch (e) {
+      return null;
+    }
   }
 
-  function wczytajStan() {
+  function pisz(klucz, wartosc) {
+    try {
+      window.localStorage.setItem(klucz, wartosc);
+      delete pamiec[klucz];
+    } catch (e) {
+      magazynDziala = false;
+      pamiec[klucz] = wartosc;
+    }
+  }
+
+  function usunKlucz(klucz) {
+    pamiec[klucz] = null;
+    try {
+      window.localStorage.removeItem(klucz);
+      delete pamiec[klucz];
+    } catch (e) { /* zostaje null w pamięci */ }
+  }
+
+  function czytajJSON(klucz) {
+    var tekst = czytaj(klucz);
+    if (!tekst) return null;
+    try {
+      return JSON.parse(tekst);
+    } catch (e) {
+      console.warn('MED.10: uszkodzone dane pod kluczem ' + klucz + ' – pomijam.');
+      return null;
+    }
+  }
+
+  function pustyStan() {
+    return { wyniki: {}, bledy: {}, egzaminy: [], egzamin: null, sesja: null, podpowiedzi: false };
+  }
+
+  // Zostawia z zapisanego obiektu tylko poprawne pola.
+  // i zostawia z niego tylko poprawne pola.
+  function normalizujStan(o) {
     var s = pustyStan();
-    var tekst = null;
-    try {
-      tekst = window.localStorage.getItem(KLUCZ);
-    } catch (e) {
-      return s;
-    }
-    if (!tekst) return s;
-    try {
-      var o = JSON.parse(tekst);
-      if (o && typeof o === 'object') {
-        if (o.wyniki && typeof o.wyniki === 'object') s.wyniki = o.wyniki;
-        if (o.bledy && typeof o.bledy === 'object') s.bledy = o.bledy;
-        if (Array.isArray(o.egzaminy)) s.egzaminy = o.egzaminy;
-        if (o.egzamin && Array.isArray(o.egzamin.ids)) s.egzamin = o.egzamin;
-        if (typeof o.podpowiedzi === 'boolean') s.podpowiedzi = o.podpowiedzi;
-      }
-    } catch (e) {
-      console.warn('MED.10: zapisane postępy były uszkodzone – zaczynam od nowa.');
-    }
+    if (!o || typeof o !== 'object') return s;
+    if (o.wyniki && typeof o.wyniki === 'object') s.wyniki = o.wyniki;
+    if (o.bledy && typeof o.bledy === 'object') s.bledy = o.bledy;
+    if (Array.isArray(o.egzaminy)) s.egzaminy = o.egzaminy;
+    if (o.egzamin && Array.isArray(o.egzamin.ids)) s.egzamin = o.egzamin;
+    if (o.sesja && Array.isArray(o.sesja.ids)) s.sesja = o.sesja;
+    if (typeof o.podpowiedzi === 'boolean') s.podpowiedzi = o.podpowiedzi;
     return s;
   }
 
-  var stan = wczytajStan();
+  var imie = (czytaj(KLUCZ_IMIE) || '').trim();
+  var stan = normalizujStan(czytajJSON(KLUCZ_POSTEPY));
 
   function zapisz() {
-    try {
-      window.localStorage.setItem(KLUCZ, JSON.stringify(stan));
-    } catch (e) {
-      magazynDziala = false;
-    }
+    pisz(KLUCZ_POSTEPY, JSON.stringify(stan));
+  }
+
+  function ustawImie(nowe) {
+    imie = nowe;
+    pisz(KLUCZ_IMIE, nowe);
+    odswiezNaglowek();
   }
 
   function maWlasnosc(obj, klucz) {
@@ -241,7 +284,15 @@
     var nazwa = el.getAttribute('data-akcja');
     var arg = el.getAttribute('data-arg');
     if (nazwa === 'menu') { doMenu(); return; }
+    if (nazwa === 'imie') { ekranImienia(true); return; }
     if (akcje[nazwa]) akcje[nazwa](arg, el);
+  });
+
+  document.addEventListener('submit', function (e) {
+    var form = e.target;
+    var nazwa = form.getAttribute('data-akcja');
+    e.preventDefault();
+    if (nazwa && akcje[nazwa]) akcje[nazwa](form);
   });
 
   document.addEventListener('keydown', function (e) {
@@ -270,9 +321,10 @@
   // ---------- Ekran startowy ----------
 
   function podsumowanie(lista) {
+    var wyniki = stan.wyniki;
     var ok = 0, zle = 0, przerobione = 0;
     lista.forEach(function (p) {
-      var w = stan.wyniki[p.id];
+      var w = maWlasnosc(wyniki, p.id) ? wyniki[p.id] : null;
       if (w && (w.ok || w.zle)) {
         przerobione++;
         ok += w.ok || 0;
@@ -283,40 +335,46 @@
   }
 
   function ekranStart() {
+    if (!imie) { ekranImienia(false); return; }
     var s = podsumowanie(pytania);
     var doPowtorki = idsDoPowtorki().length;
     var ostatni = stan.egzaminy[stan.egzaminy.length - 1];
     var egz = stan.egzamin;
     var egzPozostalo = egz ? egz.koniec - Date.now() : 0;
+    var zapisana = zapisanaSesja();
 
     var html = '<section class="karta powitanie">' +
-      '<h1>Nauka do egzaminu MED.10</h1>' +
-      '<p class="podtytul">Świadczenie usług w zakresie masażu</p>' +
+      '<p class="nadtytul">Cześć, ' + h(imie) + '!</p>' +
+      '<h1>Rozgość się i zrelaksuj</h1>' +
+      '<p class="podtytul">Spokojna nauka do egzaminu MED.10</p>' +
       '<div class="liczby">' +
         '<div><strong>' + pytania.length + '</strong><span>' + odmiana(pytania.length, 'pytanie', 'pytania', 'pytań') + ' w bazie</span></div>' +
         '<div><strong>' + s.przerobione + '</strong><span>przerobionych</span></div>' +
         '<div><strong>' + (s.odpowiedzi ? fmtProcent(procent(s.ok, s.odpowiedzi)) : '–') + '</strong><span>poprawnych odpowiedzi</span></div>' +
       '</div>' +
       pasek(procent(s.przerobione, s.wszystkie)) +
-      '<p class="maly">Przerobiono ' + s.przerobione + ' z ' + s.wszystkie + ' pytań' +
-        (ostatni ? ' · ostatni egzamin próbny: ' + fmtProcent(ostatni.procent) + ' (' + (ostatni.zdany ? 'zdany' : 'niezdany') + ')' : '') +
-      '</p>' +
+      (ostatni ? '<p class="maly">Ostatni egzamin próbny: ' + fmtProcent(ostatni.procent) + ' (' + (ostatni.zdany ? 'zdany' : 'niezdany') + ')</p>' : '') +
     '</section>' +
     '<nav class="tryby">' +
-      '<button type="button" class="tryb" data-akcja="nauka"><span class="ikona" aria-hidden="true">📖</span>' +
-        '<span><strong>Tryb nauki</strong><small>Pytania z wybranego działu, od razu z wyjaśnieniem</small></span></button>' +
+      (zapisana
+        ? '<button type="button" class="tryb wyrozniony" data-akcja="kontynuuj"><span class="ikona ikona-kontynuuj" aria-hidden="true"></span>' +
+          '<span><strong>Kontynuuj ' + (zapisana.tryb === 'powtorka' ? 'powtórkę' : 'naukę') + '</strong><small>' +
+          h(zapisana.tytul) + ' · pytanie ' + (zapisana.i + 1) + ' z ' + zapisana.lista.length + '</small></span></button>'
+        : '') +
+      '<button type="button" class="tryb" data-akcja="nauka"><span class="ikona ikona-nauka" aria-hidden="true"></span>' +
+        '<span><strong>Tryb nauki</strong><small>Z wyjaśnieniem po każdej odpowiedzi</small></span></button>' +
       (egz && egzPozostalo > 0
-        ? '<button type="button" class="tryb wyrozniony" data-akcja="wznowEgzamin"><span class="ikona" aria-hidden="true">⏱️</span>' +
-          '<span><strong>Wróć do egzaminu</strong><small>Zostało ' + fmtCzas(egzPozostalo) + ' · odpowiedziano na ' +
+        ? '<button type="button" class="tryb wyrozniony" data-akcja="wznowEgzamin"><span class="ikona ikona-wznow" aria-hidden="true"></span>' +
+          '<span><strong>Wróć do egzaminu</strong><small>Zostało ' + fmtCzas(egzPozostalo) + ' · odpowiedzi: ' +
           Object.keys(egz.odp || {}).length + ' z ' + egz.ids.length + '</small></span></button>'
-        : '<button type="button" class="tryb" data-akcja="egzamin"><span class="ikona" aria-hidden="true">📝</span>' +
-          '<span><strong>Egzamin próbny</strong><small>' + Math.min(PYTAN_NA_EGZAMINIE, pytania.length) + ' pytań, 60 minut, wynik na końcu</small></span></button>') +
-      '<button type="button" class="tryb" data-akcja="powtorka"' + (doPowtorki ? '' : ' disabled') + '><span class="ikona" aria-hidden="true">🔁</span>' +
+        : '<button type="button" class="tryb" data-akcja="egzamin"><span class="ikona ikona-egzamin" aria-hidden="true"></span>' +
+          '<span><strong>Egzamin próbny</strong><small>' + Math.min(PYTAN_NA_EGZAMINIE, pytania.length) + ' pytań · 60 minut, jak na egzaminie</small></span></button>') +
+      '<button type="button" class="tryb" data-akcja="powtorka"' + (doPowtorki ? '' : ' disabled') + '><span class="ikona ikona-powtorka" aria-hidden="true"></span>' +
         '<span><strong>Powtórka błędów' + (doPowtorki ? ' (' + doPowtorki + ')' : '') + '</strong><small>' +
-        (doPowtorki ? 'Pytanie znika po 2 poprawnych odpowiedziach z rzędu' : 'Na razie brak błędów do powtórzenia') +
+        (doPowtorki ? 'Trudniejsze pytania – do skutku' : 'Na razie nie ma tu nic do powtórki') +
         '</small></span></button>' +
-      '<button type="button" class="tryb" data-akcja="statystyki"><span class="ikona" aria-hidden="true">📊</span>' +
-        '<span><strong>Statystyki</strong><small>Wyniki w działach i historia egzaminów</small></span></button>' +
+      '<button type="button" class="tryb" data-akcja="statystyki"><span class="ikona ikona-statystyki" aria-hidden="true"></span>' +
+        '<span><strong>Statystyki</strong><small>Wyniki i historia egzaminów</small></span></button>' +
     '</nav>';
 
     var uwagi = [];
@@ -327,7 +385,8 @@
       uwagi.push('Przeglądarka blokuje zapisywanie danych – postępy znikną po zamknięciu strony.');
     }
     if (uwagi.length) html += '<p class="uwaga">' + uwagi.join('<br>') + '</p>';
-    html += '<p class="podpowiedz">Klawiatura: 1–4 lub A–D wybiera odpowiedź, Enter przechodzi dalej.</p>';
+    html += '<footer class="stopka"><details class="rozwin"><summary>O aplikacji</summary><p>' + O_APLIKACJI + '</p></details>' +
+      '<p class="autor">' + AUTORKA + '</p></footer>';
 
     pokaz(html, {
       start: true,
@@ -335,6 +394,7 @@
         nauka: ekranWyborDzialu,
         egzamin: ekranPrzedEgzaminem,
         wznowEgzamin: function () { ekranEgzamin(); },
+        kontynuuj: wznowSesje,
         powtorka: rozpocznijPowtorke,
         statystyki: ekranStatystyki
       }
@@ -347,7 +407,7 @@
   // ---------- Tryb nauki i powtórka ----------
 
   function ekranWyborDzialu() {
-    var html = '<h1>Tryb nauki</h1><p>Wybierz dział:</p><div class="lista-dzialow">' +
+    var html = '<h1>Tryb nauki</h1><p>Od czego dziś zaczynamy?</p><div class="lista-dzialow">' +
       przyciskDzialu('', 'Wszystkie działy', pytania);
     dzialy.forEach(function (d, i) {
       html += przyciskDzialu(String(i), d, pytania.filter(function (p) { return p.dzial === d; }));
@@ -386,9 +446,37 @@
     ekranPytaniaSesji();
   }
 
+  // Zapisana sesja nauki/powtórki – po wyjściu można wrócić do tego samego pytania.
+  function zapamietajSesje() {
+    var nastepne = sesja.i + (sesja.wybrana ? 1 : 0);
+    stan.sesja = nastepne < sesja.lista.length
+      ? {
+          tryb: sesja.tryb, tytul: sesja.tytul, i: nastepne, dobre: sesja.dobre, zle: sesja.zle,
+          ids: sesja.lista.map(function (p) { return p.id; })
+        }
+      : null;
+    zapisz();
+  }
+
+  function zapisanaSesja() {
+    var z = stan.sesja;
+    if (!z) return null;
+    var lista = z.ids.filter(function (id) { return poId[id]; }).map(function (id) { return poId[id]; });
+    var i = Math.min(Number(z.i) || 0, lista.length);
+    return i < lista.length ? { tryb: z.tryb, tytul: z.tytul, lista: lista, i: i, dobre: z.dobre || 0, zle: z.zle || 0 } : null;
+  }
+
+  function wznowSesje() {
+    var z = zapisanaSesja();
+    if (!z) { stan.sesja = null; zapisz(); ekranStart(); return; }
+    sesja = { tryb: z.tryb, tytul: z.tytul, lista: z.lista, i: z.i, wybrana: null, dobre: z.dobre, zle: z.zle };
+    ekranPytaniaSesji();
+  }
+
   function ekranPytaniaSesji(poOdpowiedzi) {
     var p = sesja.lista[sesja.i];
     var odp = sesja.wybrana;
+    zapamietajSesje();
     var html = '<div class="gora-sesji"><span>' + h(sesja.tytul) + '</span>' +
       '<span>Pytanie ' + (sesja.i + 1) + ' z ' + sesja.lista.length +
       ' · <span class="dobrze">✓ ' + sesja.dobre + '</span> <span class="zle">✗ ' + sesja.zle + '</span></span></div>' +
@@ -400,21 +488,21 @@
       var seria = maWlasnosc(stan.bledy, p.id) ? stan.bledy[p.id] : null;
       html += htmlWyjasnienia(p, odp, sesja.tryb === 'powtorka'
           ? (seria === null
-            ? 'To pytanie znika z powtórki – 2 razy z rzędu dobrze!'
-            : (dobrze ? 'Jeszcze 1 poprawna odpowiedź, a pytanie zniknie z powtórki.' : 'Pytanie zostaje w powtórce.'))
-          : '') +
-        '<button type="button" class="glowny" data-akcja="dalej">' +
-        (sesja.i + 1 < sesja.lista.length ? 'Dalej' : 'Zakończ') + ' <kbd>Enter</kbd></button>';
-    } else {
-      html += '<button type="button" class="drugorzedny" data-akcja="pomin">Pomiń pytanie</button>';
+            ? 'Znika z powtórki – 2 razy z rzędu dobrze!'
+            : (dobrze ? 'Jeszcze 1 dobra odpowiedź i zniknie z powtórki.' : 'Zostaje w powtórce.'))
+          : '');
     }
-    html += '<button type="button" class="drugorzedny" data-akcja="koniecSesji">Zakończ naukę</button>';
+    html += '<div class="dolny-pasek">' +
+      '<button type="button" class="drugorzedny" data-akcja="koniecSesji">Zapisz i wyjdź</button>' +
+      (odp
+        ? '<button type="button" class="glowny" data-akcja="dalej">' + (sesja.i + 1 < sesja.lista.length ? 'Dalej' : 'Zakończ') + '</button>'
+        : '<button type="button" class="drugorzedny" data-akcja="pomin">Pomiń</button>') +
+      '</div>';
 
     function odpowiedz(litera) {
       if (sesja.wybrana || p.litery.indexOf(litera) === -1) return;
       sesja.wybrana = litera;
       if (zanotujOdpowiedz(p, litera)) sesja.dobre++; else sesja.zle++;
-      zapisz();
       ekranPytaniaSesji(true);
     }
     function dalej() {
@@ -424,7 +512,7 @@
     function nastepne() {
       sesja.i++;
       sesja.wybrana = null;
-      if (sesja.i >= sesja.lista.length) ekranKoniecSesji();
+      if (sesja.i >= sesja.lista.length) { zapamietajSesje(); ekranKoniecSesji(); }
       else ekranPytaniaSesji();
     }
 
@@ -435,30 +523,34 @@
         odp: odpowiedz,
         dalej: dalej,
         pomin: nastepne,
-        koniecSesji: ekranKoniecSesji
+        koniecSesji: function () { zapamietajSesje(); ekranKoniecSesji(); }
       }
     });
 
     if (poOdpowiedzi) {
-      var w = app.querySelector('.glowny');
-      if (w && w.scrollIntoView) w.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+      var w = app.querySelector('.wyjasnienie');
+      if (w && w.scrollIntoView) w.scrollIntoView({ block: 'nearest' });
     }
   }
 
   function ekranKoniecSesji() {
     var razem = sesja.dobre + sesja.zle;
     var pozostalo = idsDoPowtorki().length;
+    var zapisana = zapisanaSesja();
     var html = '<section class="karta wynik-sesji"><h1>' +
-      (sesja.tryb === 'powtorka' ? 'Koniec powtórki' : 'Koniec nauki') + '</h1>' +
+      (zapisana ? 'Postępy zapisane' : sesja.tryb === 'powtorka' ? 'Powtórka za Tobą' : 'Chwila nauki za Tobą') + '</h1>' +
       (razem
         ? '<p class="duzy">' + sesja.dobre + ' / ' + razem + '</p><p>poprawnych odpowiedzi (' + fmtProcent(procent(sesja.dobre, razem)) + ')</p>'
         : '<p>Nie udzielono żadnej odpowiedzi.</p>') +
+      (zapisana ? '<p>Następnym razem zaczniesz od pytania ' + (zapisana.i + 1) + ' z ' + zapisana.lista.length + '.</p>' : '') +
       '<p class="maly">Pytań do powtórki: ' + pozostalo + '</p></section>' +
       '<div class="przyciski">' +
-      (sesja.tryb === 'powtorka' && pozostalo
+      (zapisana
+        ? '<button type="button" class="glowny" data-akcja="menu">Menu</button>'
+        : sesja.tryb === 'powtorka' && pozostalo
         ? '<button type="button" class="glowny" data-akcja="powtorka">Powtórz błędy jeszcze raz</button>'
-        : '<button type="button" class="glowny" data-akcja="nauka">Ucz się dalej</button>') +
-      '<button type="button" class="drugorzedny" data-akcja="menu">Menu</button></div>';
+        : '<button type="button" class="glowny" data-akcja="nauka">Jeszcze kilka pytań</button>') +
+      (zapisana ? '' : '<button type="button" class="drugorzedny" data-akcja="menu">Menu</button>') + '</div>';
     pokaz(html, {
       klawisze: { enter: doMenu },
       akcje: { powtorka: rozpocznijPowtorke, nauka: ekranWyborDzialu }
@@ -468,11 +560,19 @@
   function htmlWyjasnienia(p, odp, dopisek) {
     var dobrze = odp === p.poprawna;
     return '<div class="wyjasnienie ' + (dobrze ? 'ok' : 'blad') + '" role="status">' +
-      '<p class="werdykt">' + (dobrze ? '✓ Dobrze!' : '✗ Źle. Poprawna odpowiedź: ' + p.poprawna) + '</p>' +
+      '<p class="werdykt">' + (dobrze ? '✓ Dobrze!' : '✗ Tym razem nie. Poprawna: ' + p.poprawna) + '</p>' +
+      (dopisek ? '<p class="zrodlo">' + h(dopisek) + '</p>' : '') +
+      htmlRozwin(p) +
+      '</div>';
+  }
+
+  // Wyjaśnienie i źródło schowane pod „Pokaż wyjaśnienie”, żeby ekran był krótki.
+  function htmlRozwin(p) {
+    if (!p.wyjasnienie && !p.zrodlo) return '';
+    return '<details class="rozwin"><summary>Pokaż wyjaśnienie</summary>' +
       (p.wyjasnienie ? '<p>' + h(p.wyjasnienie) + '</p>' : '') +
       (p.zrodlo ? '<p class="zrodlo">Źródło: ' + h(p.zrodlo) + '</p>' : '') +
-      (dopisek ? '<p class="zrodlo">' + h(dopisek) + '</p>' : '') +
-      '</div>';
+      '</details>';
   }
 
   function htmlPytania(p, wybrana, pokazPoprawna) {
@@ -500,12 +600,11 @@
   function ekranPrzedEgzaminem() {
     var n = Math.min(PYTAN_NA_EGZAMINIE, pytania.length);
     var html = '<h1>Egzamin próbny</h1>' +
-      '<section class="karta"><p>' + n + ' losowych pytań ze wszystkich działów, 60 minut. ' +
-      'Możesz wracać do pytań i zmieniać odpowiedzi. Do zdania potrzeba co najmniej ' + PROG_ZDANIA + '%.</p></section>' +
+      '<section class="karta"><p><strong>' + n + ' pytań · 60 minut · próg ' + PROG_ZDANIA + '%</strong></p>' +
+      '<p>Możesz wracać do pytań i zmieniać odpowiedzi. Weź głęboki oddech – nie ma pośpiechu.</p></section>' +
       '<label class="przelacznik karta"><input type="checkbox" id="podpowiedzi"' + (stan.podpowiedzi ? ' checked' : '') + '>' +
       '<span><strong>Pokazuj poprawne odpowiedzi od razu</strong>' +
-      '<small>Po kliknięciu odpowiedzi od razu widać, czy jest dobra, i wyjaśnienie. ' +
-      'Odpowiedzi nie da się wtedy zmienić. Wyłącz, żeby egzamin był jak prawdziwy.</small></span></label>' +
+      '<small>Odpowiedzi nie da się wtedy zmienić.</small></span></label>' +
       '<div class="przyciski"><button type="button" class="glowny" data-akcja="start">Rozpocznij egzamin</button>' +
       '<button type="button" class="drugorzedny" data-akcja="menu">← Menu</button></div>';
     pokaz(html, {
@@ -542,18 +641,20 @@
 
     var html = '<div class="gora-egzaminu">' +
       '<span>Pytanie <strong>' + (egz.i + 1) + '</strong> z ' + n + '</span>' +
-      '<span class="licznik" id="licznik" role="timer" aria-live="off">⏱ ' + fmtCzas(egz.koniec - Date.now()) + '</span>' +
+      '<span class="licznik" id="licznik" role="timer" aria-live="off">' + fmtCzas(egz.koniec - Date.now()) + '</span>' +
       '</div>' +
       (n < PYTAN_NA_EGZAMINIE && egz.i === 0
-        ? '<p class="uwaga">W bazie jest tylko ' + n + ' ' + odmiana(n, 'pytanie', 'pytania', 'pytań') + ', więc egzamin jest krótszy niż prawdziwy (40).</p>'
+        ? '<p class="uwaga">Krótszy egzamin: w bazie jest tylko ' + n + ' ' + odmiana(n, 'pytanie', 'pytania', 'pytań') + '.</p>'
         : '') +
       htmlPytania(p, odp, !!egz.podpowiedzi) +
       (zablokowane ? htmlWyjasnienia(p, odp, '') : '') +
-      '<div class="nawigacja">' +
+      '<div class="dolny-pasek">' +
         '<button type="button" class="drugorzedny" data-akcja="poprzednie"' + (egz.i === 0 ? ' disabled' : '') + '>← Wstecz</button>' +
-        '<button type="button" class="glowny" data-akcja="nastepne"' + (egz.i === n - 1 ? ' disabled' : '') + '>Dalej →</button>' +
+        (egz.i === n - 1
+          ? '<button type="button" class="glowny" data-akcja="zakoncz">Zakończ</button>'
+          : '<button type="button" class="glowny" data-akcja="nastepne">Dalej →</button>') +
       '</div>' +
-      '<p class="maly">Odpowiedziano: ' + odpowiedziano + ' z ' + n + '. Kliknij numer, aby przejść do pytania.</p>' +
+      '<p class="maly">Odpowiedzi: ' + odpowiedziano + ' z ' + n + '</p>' +
       '<div class="siatka">';
     egz.ids.forEach(function (id, i) {
       var stanNr = !egz.odp[id] ? '' : !egz.podpowiedzi ? ' odpowiedziane' :
@@ -564,8 +665,7 @@
     });
     html += '</div>' +
       '<button type="button" class="zakoncz" data-akcja="zakoncz">Zakończ egzamin</button>' +
-      (egz.podpowiedzi ? '<p class="maly">Egzamin z podpowiedziami – poprawne odpowiedzi są pokazywane od razu.</p>' : '') +
-      '<p class="maly">Czas biegnie także po wyjściu do menu – egzamin możesz wznowić z ekranu startowego.</p>';
+      '<p class="maly">Czas biegnie też po wyjściu do menu.</p>';
 
     function idz(i) {
       if (i < 0 || i >= n) return;
@@ -607,7 +707,7 @@
     function tik() {
       var zostalo = egz.koniec - Date.now();
       if (zostalo <= 0) { zakonczEgzamin(true); return; }
-      licznik.textContent = '⏱ ' + fmtCzas(zostalo);
+      licznik.textContent = fmtCzas(zostalo);
       licznik.classList.toggle('malo-czasu', zostalo < 5 * 60 * 1000);
     }
     tik();
@@ -651,15 +751,16 @@
     var html = '<section class="karta wynik ' + (w.zdany ? 'zdany' : 'niezdany') + '">' +
       (ostatniWynik.czasMinal ? '<p class="maly">Czas minął – egzamin zakończył się automatycznie.</p>' : '') +
       '<p class="werdykt-egzaminu">' + (w.zdany ? 'ZDANY' : 'NIEZDANY') + '</p>' +
+      '<p class="wynik-komentarz">' + (w.zdany ? 'Gratulacje! Tak trzymaj.' : 'Tym razem się nie udało – przejrzyj błędy i spróbuj jeszcze raz.') + '</p>' +
       '<p class="duzy">' + w.punkty + ' / ' + w.liczba + ' pkt</p>' +
-      '<p>' + fmtProcent(w.procent) + ' · próg zdania ' + PROG_ZDANIA + '% · czas ' + fmtCzas(w.czasMs) + '</p>' +
+      '<p class="maly">' + fmtProcent(w.procent) + ' · próg ' + PROG_ZDANIA + '% · czas ' + fmtCzas(w.czasMs) + '</p>' +
       '</section>' +
       '<div class="przyciski"><button type="button" class="glowny" data-akcja="nowy">Nowy egzamin</button>' +
       '<button type="button" class="drugorzedny" data-akcja="menu">Menu</button></div>';
 
     if (ostatniWynik.bledne.length) {
       html += '<h2>Błędne i pominięte odpowiedzi (' + ostatniWynik.bledne.length + ')</h2>' +
-        '<p class="maly">Błędnie rozwiązane pytania trafiły do powtórki błędów.</p>';
+        '<p class="maly">Trafiły do powtórki błędów.</p>';
       ostatniWynik.bledne.forEach(function (b) {
         var p = b.p;
         html += '<article class="karta przeglad">' +
@@ -669,12 +770,11 @@
             ? '<strong>' + b.wybrana + '.</strong> ' + h(p.odpowiedzi[b.wybrana])
             : '<em>brak odpowiedzi</em>') + '</p>' +
           '<p class="poprawna-odp">Poprawna: <strong>' + p.poprawna + '.</strong> ' + h(p.odpowiedzi[p.poprawna]) + '</p>' +
-          (p.wyjasnienie ? '<p>' + h(p.wyjasnienie) + '</p>' : '') +
-          (p.zrodlo ? '<p class="zrodlo">Źródło: ' + h(p.zrodlo) + '</p>' : '') +
+          htmlRozwin(p) +
           '</article>';
       });
     } else {
-      html += '<p class="karta">Wszystkie odpowiedzi poprawne – świetna robota!</p>';
+      html += '<p class="karta">Wszystkie odpowiedzi poprawne – wspaniała robota!</p>';
     }
 
     pokaz(html, {
@@ -702,8 +802,8 @@
         '<div class="stat-naglowek"><span>' + h(d) + '</span><strong>' + (ds.odpowiedzi ? fmtProcent(proc) : '–') + '</strong></div>' +
         pasek(ds.odpowiedzi ? proc : 0, ds.odpowiedzi ? (proc >= PROG_ZDANIA ? 'ok' : 'slabo') : '') +
         '<p class="maly">' + (ds.odpowiedzi
-          ? ds.ok + ' z ' + ds.odpowiedzi + ' odpowiedzi poprawnych · przerobione pytania: ' + ds.przerobione + ' z ' + ds.wszystkie
-          : 'Brak odpowiedzi – ' + ds.wszystkie + ' ' + odmiana(ds.wszystkie, 'pytanie', 'pytania', 'pytań') + ' do przerobienia') +
+          ? ds.ok + '/' + ds.odpowiedzi + ' poprawnych · przerobione ' + ds.przerobione + ' z ' + ds.wszystkie
+          : ds.wszystkie + ' ' + odmiana(ds.wszystkie, 'pytanie', 'pytania', 'pytań') + ' do przerobienia') +
         '</p></div>';
     });
     html += '</div><h2>Historia egzaminów próbnych</h2>';
@@ -718,7 +818,7 @@
       });
       html += '</ol>';
     } else {
-      html += '<p class="karta maly">Nie rozwiązano jeszcze żadnego egzaminu próbnego.</p>';
+      html += '<p class="karta maly">Jeszcze bez egzaminów próbnych.</p>';
     }
 
     html += '<div class="przyciski"><button type="button" class="drugorzedny" data-akcja="menu">← Menu</button>' +
@@ -728,9 +828,71 @@
       akcje: {
         wyzeruj: function () {
           if (!window.confirm('Czy na pewno usunąć wszystkie postępy, błędy do powtórki i historię egzaminów? Tego nie da się cofnąć.')) return;
+          var podpowiedzi = stan.podpowiedzi;
           stan = pustyStan();
+          stan.podpowiedzi = podpowiedzi;
           zapisz();
           ekranStatystyki();
+        }
+      }
+    });
+  }
+
+  // ---------- Imię ucznia ----------
+
+  function inicjal(tekst) {
+    return (tekst || '?').trim().charAt(0).toLocaleUpperCase('pl') || '?';
+  }
+
+  function odswiezNaglowek() {
+    var kto = document.getElementById('kto');
+    if (!kto) return;
+    kto.hidden = !imie;
+    kto.innerHTML = '<span class="awatar maly-awatar" aria-hidden="true">' + h(inicjal(imie)) + '</span>' +
+      '<span class="kto-nazwa">' + h(imie) + '</span><span class="kto-zmien">zmień</span>';
+    kto.setAttribute('aria-label', 'Twoje imię: ' + imie + '. Zmień imię');
+  }
+
+  // Powitanie przy pierwszym uruchomieniu albo zmiana imienia (edycja).
+  function ekranImienia(edycja) {
+    var pole = '<input id="imie" name="imie" maxlength="' + MAKS_DLUGOSC_IMIENIA + '" placeholder="Twoje imię" value="' + h(imie) + '" enterkeyhint="go">';
+    var html = edycja
+      ? '<section class="karta twoje-imie"><h1>Zmień imię</h1>' +
+          '<form class="wiersz-formularza" data-akcja="zapiszImie" autocomplete="off">' + pole +
+            '<button type="submit" class="glowny">Zapisz</button></form>' +
+          '<p class="blad-formularza" id="bladImienia" role="alert"></p>' +
+        '</section>' +
+        '<button type="button" class="drugorzedny" data-akcja="menu">Anuluj</button>'
+      : '<section class="karta powitalny">' +
+          '<span class="godlo" aria-hidden="true"></span>' +
+          '<p class="nadtytul">Dzień dobry!</p><h1>Rozgość się i zrelaksuj</h1>' +
+          '<p class="wstep">Ta aplikacja pomoże Ci spokojnie przygotować się do egzaminu MED.10.</p>' +
+          '<details class="rozwin"><summary>Skąd pochodzą pytania?</summary><p>' + O_APLIKACJI + '</p></details>' +
+          '<form class="formularz-imienia" data-akcja="zapiszImie" autocomplete="off">' +
+            '<label for="imie">Jak masz na imię?</label>' + pole +
+            '<button type="submit" class="glowny">Zaczynamy</button>' +
+          '</form>' +
+          '<p class="blad-formularza" id="bladImienia" role="alert"></p>' +
+          '<p class="maly">Imię służy tylko do powitania. Postępy zostają na tym urządzeniu.</p>' +
+        '</section>' +
+        '<footer class="stopka"><p class="autor">' + AUTORKA + '</p></footer>';
+    if (!magazynDziala) {
+      html += '<p class="uwaga">Przeglądarka blokuje zapisywanie danych – imię i postępy znikną po zamknięciu strony.</p>';
+    }
+
+    pokaz(html, {
+      start: !edycja,
+      akcje: {
+        zapiszImie: function (form) {
+          var nowe = form.elements.imie.value.trim();
+          var blad = !nowe ? 'Wpisz imię lub pseudonim.' : '';
+          if (blad) {
+            document.getElementById('bladImienia').textContent = blad;
+            form.elements.imie.focus();
+            return;
+          }
+          ustawImie(nowe);
+          if (edycja) doMenu(); else ekranStart();
         }
       }
     });
@@ -742,5 +904,6 @@
     app.innerHTML = '<p class="uwaga">Nie znaleziono żadnych pytań. Sprawdź, czy obok index.html leży plik pytania-przyklad.js lub pytania.js.</p>';
     return;
   }
+  odswiezNaglowek();
   ekranStart();
 })();

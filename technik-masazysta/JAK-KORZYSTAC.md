@@ -1,21 +1,34 @@
 # Jak korzystać z aplikacji MED.10
 
+Rozgość się i zrelaksuj. Ta aplikacja pomoże Ci spokojnie przygotować się do części pisemnej egzaminu
+zawodowego MED.10 (technik masażysta). Pytania powstały na podstawie oficjalnych wymagań egzaminacyjnych CKE
+(informator i podstawa programowa) oraz zadań z poprzednich sesji egzaminu MED.10.
+
+Przygotowała Aneta Kisielewska.
+
 ## Jak otworzyć
 
 1. Skopiuj cały folder `technik-masazysta` (wszystkie pliki muszą leżeć razem).
 2. Kliknij dwukrotnie plik **`index.html`**. Otworzy się w przeglądarce (Chrome, Edge, Firefox, Safari).
 3. Nic nie trzeba instalować, a internet nie jest potrzebny.
 
-**Na telefonie:** skopiuj folder do pamięci telefonu i otwórz `index.html` przeglądarką
-(np. przez aplikację „Pliki”). Dodaj stronę do zakładek, żeby szybko do niej wracać.
+**Na telefonie:** otwórz w przeglądarce link https://anetaskisielewska-rocket.github.io/med10-technik-masazysta/
+i dodaj go do ekranu głównego (menu przeglądarki → „Dodaj do ekranu głównego”).
 
 Jeśli na dole ekranu startowego widzisz napis **„Wersja demo”**, to w folderze nie ma jeszcze
 pliku `pytania.js` z pełną bazą pytań. Aplikacja działa wtedy na 10 przykładowych pytaniach.
 
+## Twoje imię
+
+Przy pierwszym uruchomieniu aplikacja zapyta, jak masz na imię (może być pseudonim), i będzie Cię nim witać.
+Imię widać w prawym górnym rogu. Kliknij je, żeby je zmienić.
+
 ## Tryby
 
 - **Tryb nauki**: wybierasz dział albo „Wszystkie działy” i rozwiązujesz pytania w losowej kolejności.
-  Po kliknięciu odpowiedzi od razu widzisz, czy jest dobra, i czytasz wyjaśnienie.
+  Po kliknięciu odpowiedzi od razu widzisz, czy jest dobra. Wyjaśnienie rozwiniesz przyciskiem „Pokaż wyjaśnienie”.
+  Przycisk **„Zapisz i wyjdź”** zapamiętuje, w którym miejscu jest nauka. Na ekranie startowym pojawi się wtedy
+  **„Kontynuuj naukę”**, które wraca do tego samego pytania.
 - **Egzamin próbny**: działa jak prawdziwa część pisemna: 40 losowych pytań i 60 minut.
   Możesz wracać do pytań (numery na dole) i zmieniać odpowiedzi. Wynik zobaczysz dopiero po kliknięciu
   „Zakończ egzamin” albo gdy skończy się czas. Do zdania potrzeba co najmniej 50%, czyli 20 punktów.
@@ -23,16 +36,10 @@ pliku `pytania.js` z pełną bazą pytań. Aplikacja działa wtedy na 10 przykł
   Przed startem możesz zaznaczyć **„Pokazuj poprawne odpowiedzi od razu”**. Wtedy po każdym kliknięciu
   widzisz, czy odpowiedź jest dobra, i czytasz wyjaśnienie, ale nie możesz jej już zmienić. Dobre na początek nauki.
   Na „prawdziwy” egzamin próbny zostaw tę opcję wyłączoną.
-- **Powtórka błędów**: wracają tu pytania, na które odpowiedziałeś źle. Pytanie znika z powtórki,
+- **Powtórka błędów**: wracają tu pytania, przy których odpowiedź była błędna. Pytanie znika z powtórki,
   gdy odpowiesz na nie dobrze **2 razy z rzędu**.
 - **Statystyki**: procent poprawnych odpowiedzi w każdym dziale i historia egzaminów próbnych.
-  Przycisk „Wyzeruj postępy” kasuje wszystko i pozwala zacząć od nowa.
-
-## Klawiatura (na komputerze)
-
-- **1–4** albo **A–D**: wybór odpowiedzi
-- **Enter**: dalej / następne pytanie
-- **← →**: poprzednie i następne pytanie na egzaminie próbnym
+  Przycisk „Wyzeruj postępy” kasuje postępy (imię zostaje) i pozwala zacząć od nowa.
 
 ## Jak się uczyć, żeby zdać
 
@@ -44,6 +51,7 @@ pliku `pytania.js` z pełną bazą pytań. Aplikacja działa wtedy na 10 przykł
 
 ## Gdzie są zapisane postępy?
 
-Postępy zapisują się w przeglądarce na tym urządzeniu. Nie przenoszą się na inny komputer
-ani do innej przeglądarki. Jeśli przeglądarka blokuje zapisywanie (np. tryb prywatny),
+Imię i postępy zapisują się **tylko w przeglądarce na tym urządzeniu**. Nie przenoszą się na inny
+komputer, telefon ani do innej przeglądarki: na każdym urządzeniu masz osobne wyniki.
+Wyczyszczenie danych przeglądarki usuwa też imię i postępy. Jeśli przeglądarka blokuje zapisywanie (np. tryb prywatny),
 aplikacja nadal działa, ale postępy znikną po jej zamknięciu. Pokaże wtedy o tym komunikat.
